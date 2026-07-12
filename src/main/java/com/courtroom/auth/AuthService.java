@@ -72,12 +72,40 @@ public class AuthService {
     }
 
     @Transactional
-    public StoreAccessTokenResponse storeAccessToken(String token,String id){
+    public StoreRefreshOrAccessTokenResponse storeAccessToken(String token,String id){
+        try {
+            int updatedToken = userRepository.updateAccessToken(id, token);
 
+            if (updatedToken == 0) {
+                throw new UserNotFoundException("User not found.");
+            }
+
+            return new StoreRefreshOrAccessTokenResponse(
+                    true,
+                    "Access token token stored successfully."
+            );
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to store token.", e);
+        }
     }
     @Transactional
-    public StoreRefreshTokenResponse storeRefreshToken(String token,String id){
+    public StoreRefreshOrAccessTokenResponse storeRefreshToken(String token,String id){
+        try {
+            int updatedToken = userRepository.updateRefreshToken(id, token);
 
+            if (updatedToken == 0) {
+                throw new UserNotFoundException("User not found.");
+            }
+
+            return new StoreRefreshOrAccessTokenResponse(
+                    true,
+                    "Refresh token token stored successfully."
+            );
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to store token.", e);
+        }
     }
 
 }
