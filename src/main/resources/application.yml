@@ -29,11 +29,16 @@ spring:
       host: localhost
       port: 6379
       # password: ""   # uncomment if you set one
-jwt:
-  access-token-secret: ${JWT_ACCESS_TOKEN_SECRET:lksjfs98dfsET#%$G%$^G%T%$Gjlehk3kjh0s9df#$F#}
-  refresh-token-secret: ${JWT_REFRESH_TOKEN_SECRET:lksjfs98dfsdkjsdf98sdf7sdfjlehk3kjh0s9df#$F#}
-  access-token-expiration: ${JWT_ACCESS_EXPIRATION:300000}
-  refresh-token-expiration: ${JWT_REFRESH_EXPIRATION:604800000}
+  jwt:
+    access-token-secret: ${JWT_ACCESS_TOKEN_SECRET:lksjfs98dfsET#%$G%$^G%T%$Gjlehk3kjh0s9df#$F#}
+    refresh-token-secret: ${JWT_REFRESH_TOKEN_SECRET:lksjfs98dfsdkjsdf98sdf7sdfjlehk3kjh0s9df#$F#}
+    access-token-expiration: ${JWT_ACCESS_EXPIRATION:300000}
+    refresh-token-expiration: ${JWT_REFRESH_EXPIRATION:604800000}
+
+  security:
+    forgot-password:
+      method: recovery-code
+
 logging:
   level:
     com.courtroom: DEBUG
