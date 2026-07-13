@@ -100,11 +100,68 @@ public class AuthService {
 
             return new StoreRefreshOrAccessTokenResponse(
                     true,
-                    "Refresh token token stored successfully."
+                    "Refresh token stored successfully."
             );
 
         } catch (Exception e) {
             throw new RuntimeException("Failed to store token.", e);
+        }
+    }
+
+    @Transactional
+    public ClearAccessOrRefreshTokenResponse clearRefreshToken(String token,String id){
+        try {
+            int updatedToken = userRepository.clearRefreshToken(id);
+
+            if (updatedToken == 0) {
+                throw new UserNotFoundException("User not found.");
+            }
+
+            return new ClearAccessOrRefreshTokenResponse(
+                    true,
+                    "Refresh Token Cleared Successfully."
+            );
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to clear token.", e);
+        }
+    }
+
+    @Transactional
+    public ClearAccessOrRefreshTokenResponse clearAccessToken(String token,String id){
+        try {
+            int updatedToken = userRepository.clearAccessToken(id);
+
+            if (updatedToken == 0) {
+                throw new UserNotFoundException("User not found.");
+            }
+
+            return new ClearAccessOrRefreshTokenResponse(
+                    true,
+                    "Access Token Cleared Successfully."
+            );
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to clear token.", e);
+        }
+    }
+
+    @Transactional
+    public ClearAccessAndRefreshTokenResponse clearAccessAndRefreshToken(String token,String id){
+        try {
+            int updatedToken = userRepository.clearTokens(id);
+
+            if (updatedToken == 0) {
+                throw new UserNotFoundException("User not found.");
+            }
+
+            return new ClearAccessAndRefreshTokenResponse(
+                    true,
+                    "Access & Refresh Token Cleared Successfully."
+            );
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to clear tokens.", e);
         }
     }
 

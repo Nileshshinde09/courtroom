@@ -54,4 +54,20 @@ public interface UserRepository extends JpaRepository<User, Long> {
         WHERE u.id = :id
     """)
     int clearTokens(@Param("id") String id);
+
+    @Modifying
+    @Query("""
+        UPDATE User u
+        SET u.accessToken = null
+        WHERE u.id = :id
+    """)
+    int clearAccessToken(@Param("id") String id);
+
+    @Modifying
+    @Query("""
+        UPDATE User u
+        SET u.refreshToken = null
+        WHERE u.id = :id
+    """)
+    int clearRefreshToken(@Param("id") String id);
 }
