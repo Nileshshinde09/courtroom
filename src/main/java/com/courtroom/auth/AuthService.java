@@ -1,9 +1,13 @@
 package com.courtroom.auth;
 
+import com.courtroom.exception.*;
+import com.courtroom.models.user.UserSession;
+import com.courtroom.models.user.UserSessionRepository;
+import com.courtroom.security.CustomUserDetails;
+import com.courtroom.security.JwtService;
+import com.courtroom.utils.UserUtils;
 import com.courtroom.auth.dto.*;
-import com.courtroom.exception.EmailAlreadyExistsException;
-import com.courtroom.exception.UserNotFoundException;
-import com.courtroom.exception.UsernameAlreadyExistsException;
+import com.courtroom.config.SecurityConfig;
 import com.courtroom.models.user.User;
 import com.courtroom.models.user.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -17,7 +21,10 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-
+    private final UserUtils userUtils;
+    private final SecurityConfig securityConfig;
+    private final UserSessionRepository userSessionRepository;
+    private final JwtService jwtService;
     @Transactional
     public UserResponse register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.email())) {
@@ -41,6 +48,76 @@ public class AuthService {
     }
 
     @Transactional
+    public LoginResponse loginResponse(LoginRequest request) {
+
+        User user;
+
+        // Login with email
+        if (userUtils.isEmail(request.identifier())) {
+
+            if (!userUtils.isValidEmail(request.identifier())) {
+                throw new InvalidEmailException("Invalid email.");
+            }
+
+            user = userRepository.findByEmail(request.identifier())
+                    .orElseThrow(() ->
+                            new UserNotFoundException("User not found."));
+
+        }
+        // Login with username
+        else {
+
+            if (!userUtils.isValidUsername(request.identifier())) {
+                throw new InvalidUsernameException("Invalid username.");
+            }
+
+            user = userRepository.findByUsername(request.identifier())
+                    .orElseThrow(() ->
+                            new UserNotFoundException("User not found."));
+        }
+
+        // Verify password
+        if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
+            throw new InvalidPasswordException("Invalid password.");
+        }
+
+        // Create CustomUserDetails
+        CustomUserDetails userDetails = CustomUserDetails.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .displayName(user.getDisplayName())
+                .role("ROLE_USER")
+                .build();
+
+        // Generate JWTs
+        String accessToken = jwtService.generateAccessToken(userDetails);
+        String refreshToken = jwtService.generateRefreshToken(userDetails);
+
+        // Create UserSession
+        UserSession session = UserSession.builder()
+                .user(user)
+                .accessToken(accessToken)
+                .refreshToken(refreshToken)
+                .build();
+
+        userSessionRepository.save(session);
+
+        return new LoginResponse(
+                true,
+                "User logged in successfully.",
+                accessToken,
+                refreshToken,
+                new UserResponse(
+                        user.getId(),
+                        user.getUsername(),
+                        user.getDisplayName(),
+                        user.getEmail()
+                )
+        );
+    }
+
+    @Transactional
     public IsUsernameExistResponse isUsernameExistResponse(IsUsernameExistRequest request){
         if(userRepository.existsByUsername(request.username())){
             return new IsUsernameExistResponse(true,"Username is already taken");
@@ -55,7 +132,7 @@ public class AuthService {
             String id) {
 
         try {
-            int updatedTokens = userRepository.updateTokens(id, accessToken, refreshToken);
+            int updatedTokens = userSessionRepository.updateTokens(id, accessToken, refreshToken);
 
             if (updatedTokens == 0) {
                 throw new UserNotFoundException("User not found.");
@@ -74,7 +151,7 @@ public class AuthService {
     @Transactional
     public StoreRefreshOrAccessTokenResponse storeAccessToken(String token,String id){
         try {
-            int updatedToken = userRepository.updateAccessToken(id, token);
+            int updatedToken = userSessionRepository.updateAccessToken(id, token);
 
             if (updatedToken == 0) {
                 throw new UserNotFoundException("User not found.");
@@ -92,7 +169,7 @@ public class AuthService {
     @Transactional
     public StoreRefreshOrAccessTokenResponse storeRefreshToken(String token,String id){
         try {
-            int updatedToken = userRepository.updateRefreshToken(id, token);
+            int updatedToken = userSessionRepository.updateRefreshToken(id, token);
 
             if (updatedToken == 0) {
                 throw new UserNotFoundException("User not found.");
@@ -111,7 +188,7 @@ public class AuthService {
     @Transactional
     public ClearAccessOrRefreshTokenResponse clearRefreshToken(String token,String id){
         try {
-            int updatedToken = userRepository.clearRefreshToken(id);
+            int updatedToken = userSessionRepository.clearRefreshToken(id);
 
             if (updatedToken == 0) {
                 throw new UserNotFoundException("User not found.");
@@ -130,7 +207,7 @@ public class AuthService {
     @Transactional
     public ClearAccessOrRefreshTokenResponse clearAccessToken(String token,String id){
         try {
-            int updatedToken = userRepository.clearAccessToken(id);
+            int updatedToken = userSessionRepository.clearAccessToken(id);
 
             if (updatedToken == 0) {
                 throw new UserNotFoundException("User not found.");
@@ -149,7 +226,7 @@ public class AuthService {
     @Transactional
     public ClearAccessAndRefreshTokenResponse clearAccessAndRefreshToken(String token,String id){
         try {
-            int updatedToken = userRepository.clearTokens(id);
+            int updatedToken = userSessionRepository.clearTokens(id);
 
             if (updatedToken == 0) {
                 throw new UserNotFoundException("User not found.");
